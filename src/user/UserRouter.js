@@ -7,29 +7,29 @@ router.post(
   '/api/1.0/users',
   check('username')
     .notEmpty()
-    .withMessage('Username cannot be null')
+    .withMessage('usernameNull')
     .bail() // no need to check further
     .isLength({ min: 4, max: 32 })
-    .withMessage('Must have min 4 and max 32 characters'),
+    .withMessage('usernameSize'),
   check('email')
     .notEmpty()
-    .withMessage('E-mail cannot be null')
+    .withMessage('emailNull')
     .bail()
     .isEmail()
-    .withMessage('E-mail is not valid')
+    .withMessage('emailInvalid')
     .bail()
     .custom(async (email) => {
       const user = await UserService.findByEmail(email);
       if (user) {
-        throw new Error('E-mail already been used');
+        throw new Error('emailInUse');
       }
     }),
   check('password')
     .notEmpty()
-    .withMessage('Password cannot be null')
+    .withMessage('passwordNull')
     .bail()
     .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters')
+    .withMessage('passwordSize')
     .bail()
     .isStrongPassword({
       minLowercase: 1,
@@ -38,22 +38,20 @@ router.post(
       minLength: 6,
       minSymbols: 0,
     })
-    .withMessage(
-      'Password must have at least 1 uppercase, 1 lowercase letter and 1 number'
-    ),
+    .withMessage('passwordPattern'),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       const validationErrors = {};
       errors
         .array()
-        .forEach((error) => (validationErrors[error.param] = error.msg));
+        .forEach((error) => (validationErrors[error.param] = req.t(error.msg)));
       const response = { validationErrors };
       return res.status(400).send(response);
     }
 
     await UserService.save(req.body);
-    return res.status(200).send({ message: 'User created' });
+    return res.status(200).send({ message: req.t('UserCreatedSuccess') });
   }
 );
 
